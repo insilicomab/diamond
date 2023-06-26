@@ -1,15 +1,17 @@
+import os
 from abc import ABC, abstractmethod
 from typing import Union
 
 import numpy as np
 import pandas as pd
+from joblib import dump, load
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder
 
-from src.dataset.schema import BASE_SCHEMA
+from src.dataset.schema import BASE_SCHEMA, PREPROCESSED_SCHEMA, X_SCHEMA
 from src.middleware.logger import configure_logger
 
 logger = configure_logger(__name__)
@@ -58,6 +60,7 @@ def calc_diff_from_median(df: pd.DataFrame) -> pd.DataFrame:
 # カテゴリ変数cutごとにcarat中央値を集計
 def agg_median_carat_by_cut(df: pd.DataFrame) -> pd.DataFrame:
     carat_by_cut = df.groupby("cut")["carat"].agg("median").reset_index()
+    carat_by_cut.columns = ["cut", "median_carat_by_cut"]
     df = pd.merge(df, carat_by_cut, on="cut", how="left")
     return df
 
@@ -77,6 +80,7 @@ def ratio_carat_per_median_carat_by_cut(df: pd.DataFrame) -> pd.DataFrame:
 # カテゴリ変数colorごとにcarat中央値を集計
 def agg_median_carat_by_color(df: pd.DataFrame) -> pd.DataFrame:
     carat_by_color = df.groupby("color")["carat"].agg("median").reset_index()
+    carat_by_color.columns = ["color", "median_carat_by_color"]
     df = pd.merge(df, carat_by_color, on="color", how="left")
     return df
 
@@ -96,6 +100,7 @@ def ration_carat_median_carat_by_color(df: pd.DataFrame) -> pd.DataFrame:
 # カテゴリ変数clarityごとにcarat中央値を集計
 def agg_carat_by_clarity(df: pd.DataFrame) -> pd.DataFrame:
     carat_by_clarity = df.groupby("clarity")["carat"].agg("median").reset_index()
+    carat_by_clarity.columns = ["clarity", "median_carat_by_clarity"]
     df = pd.merge(df, carat_by_clarity, on="clarity", how="left")
     return df
 
@@ -223,6 +228,78 @@ class DataPreprocessPipeline:
         x = BASE_SCHEMA.validate(x)
         x = remove_outliter(x)
         x = calc_density(x)
-        print(x.head())
-        print(x.shape)
+        x = calc_diff(x)
+        x = calc_ratio(x)
+        x = calc_diff_from_median(x)
+        x = agg_median_carat_by_cut(x)
+        x = diff_carat_median_carat_by_cut(x)
+        x = ratio_carat_per_median_carat_by_cut(x)
+        x = agg_median_carat_by_color(x)
+        x = diff_carat_median_carat_by_color(x)
+        x = ration_carat_median_carat_by_color(x)
+        x = agg_carat_by_clarity(x)
+        x = diff_carat_median_carat_by_clarity(x)
+        x = ratio_carat_per_median_carat_by_clarity(x)
+        x = ratio_cut_times_color(x)
+        x = ratio_rate_color_times_clarity(x)
+        x = ratio_clarity_times_cut(x)
+        x = PREPROCESSED_SCHEMA.validate(x)
         return x
+
+    def fit(
+        self,
+        x: pd.DataFrame,
+        y=None,
+    ):
+        if self.pipeline is None:
+            raise AttributeError
+        x = X_SCHEMA.validate(x)
+        self.pipeline.fit(x)
+
+        return self
+
+    def transform(
+        self,
+        x: pd.DataFrame,
+    ) -> pd.DataFrame:
+        if self.pipeline is None:
+            raise AttributeError
+        x = X_SCHEMA.validate(x)
+        pipe_df = self.pipeline.transform(x)
+        df = self.postprocess(x, pipe_df)
+        return df
+
+    def fit_transform(
+        self,
+        x: pd.DataFrame,
+        y=None,
+    ) -> pd.DataFrame:
+        if self.pipeline is None:
+            raise AttributeError
+        x = X_SCHEMA.validate(x)
+        pipe_df = self.pipeline.fit_transform(x)
+        df = self.postprocess(x, pipe_df)
+        return df
+
+    def postprocess(self, df, pipe_df):
+        for cat in CATEGORICAL_FEATURES:
+            df[f"{cat}"] = pipe_df[f"{cat}"].astype("category")
+        return df
+
+    def dump_pipeline(
+        self,
+        file_path: str,
+    ) -> str:
+        file, ext = os.path.splitext(file_path)
+        if ext != ".pkl":
+            file_path = f"{file}.pkl"
+        logger.info(f"save preprocess pipeline: {file_path}")
+        dump(self.pipeline, file_path)
+        return file_path
+
+    def load_pipeline(
+        self,
+        file_path: str,
+    ):
+        logger.info(f"load preprocess pipeline: {file_path}")
+        self.pipeline = load(file_path)

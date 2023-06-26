@@ -28,7 +28,10 @@ def main(cfg: DictConfig):
             file_path=cfg.train_file_path,
         )
         data_preprocess_pipeline = DataPreprocessPipeline()
-        data_preprocess_pipeline.preprocess(raw_df)
+        cross_validation_datasets, x_test, y_test = data_retriever.train_test_split(
+            raw_df=raw_df,
+            data_preprocess_pipeline=data_preprocess_pipeline,
+        )
 
 
 if __name__ == "__main__":

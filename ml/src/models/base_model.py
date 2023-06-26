@@ -3,6 +3,7 @@ from typing import Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
+
 from src.middleware.logger import configure_logger
 
 logger = configure_logger(__name__)
