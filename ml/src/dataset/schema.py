@@ -14,7 +14,7 @@ BASE_SCHEMA = DataFrameSchema(
         "clarity": Column(str, checks=Check.isin(CLARITY)),
         "depth": Column(float),
         "table": Column(float),
-        "price": Column(int),
+        "price": Column(int, required=False),
         "x": Column(float),
         "y": Column(float),
         "z": Column(float),
@@ -32,7 +32,7 @@ PREPROCESSED_SCHEMA = DataFrameSchema(
         "clarity": Column(str, checks=Check.isin(CLARITY)),
         "depth": Column(float),
         "table": Column(float),
-        "price": Column(int),
+        "price": Column(int, required=False),
         "x": Column(float),
         "y": Column(float),
         "z": Column(float),
@@ -106,5 +106,22 @@ X_SCHEMA = DataFrameSchema(
 Y_SCHEMA = SeriesSchema(
     int,
     nullable=False,
+    coerce=True,
+)
+
+RAW_PREDICTION_SCHEMA = DataFrameSchema(
+    columns={
+        "carat": Column(float),
+        "cut": Column(str, checks=Check.isin(CUT)),
+        "color": Column(str, checks=Check.isin(COLOR)),
+        "clarity": Column(str, checks=Check.isin(CLARITY)),
+        "depth": Column(float),
+        "table": Column(float),
+        "x": Column(float),
+        "y": Column(float),
+        "z": Column(float),
+    },
+    index=Index(int),
+    strict=True,
     coerce=True,
 )

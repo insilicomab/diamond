@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.model_selection import KFold, train_test_split
 
 from src.dataset.data_manager import load_df_from_csv
-from src.dataset.schema import BASE_SCHEMA, X_SCHEMA, Y_SCHEMA
+from src.dataset.schema import BASE_SCHEMA, RAW_PREDICTION_SCHEMA, X_SCHEMA, Y_SCHEMA
 from src.middleware.logger import configure_logger
 from src.models.preprocess import DataPreprocessPipeline
 
@@ -76,3 +76,18 @@ preprocessed test df shape: {x_test.shape}
         ]
         logger.info("done split data")
         return (cross_validation_datasets, x_test, y_test)
+
+    def retrieve_prediction_data(self, file_path: str) -> pd.DataFrame:
+        logger.info("start retrieve prediction data")
+        data_to_be_predicted_df = load_df_from_csv(file_path)
+        data_to_be_predicted_df = RAW_PREDICTION_SCHEMA.validate(
+            data_to_be_predicted_df
+        )
+        logger.info(
+            f"""
+Loaded dataset
+raw_df columns: {data_to_be_predicted_df.columns}
+raw_df shape: {data_to_be_predicted_df.shape}
+    """
+        )
+        return data_to_be_predicted_df
