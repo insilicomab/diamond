@@ -27,7 +27,6 @@ LGB_REGRESSION_DEFAULT_PARAMS = {
     "min_data_in_bin": 3,
     "bagging_freq": 1,
     "bagging_seed": 0,
-    "verbose": -1,
 }
 
 
@@ -36,7 +35,7 @@ class LightGBMRegression(AbstractBaseModel):
         self,
         params: Dict = LGB_REGRESSION_DEFAULT_PARAMS,
         stopping_rounds: int = 100,
-        eval_metrics: Union[str, List[str]] = "mse",
+        eval_metrics: Union[str, List[str]] = "mae",
         verbose_eval: int = 500,
     ):
         self.name = "light_gbm_regression"

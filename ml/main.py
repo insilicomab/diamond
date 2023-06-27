@@ -6,6 +6,7 @@ import mlflow
 from omegaconf import DictConfig
 
 from src.jobs.retrieve import DataRetriever
+from src.jobs.train import Trainer
 from src.middleware.logger import configure_logger
 from src.models.models import MODELS
 from src.models.preprocess import DataPreprocessPipeline
@@ -42,6 +43,27 @@ def main(cfg: DictConfig):
 
         if "params" in cfg.jobs.model.keys():
             model.reset_model(params=cfg.jobs.model.params)
+
+        if cfg.jobs.train.run:
+            now = datetime.now().strftime("%Y%m%d_%H%M%S")
+            preprocess_pipeline_file_path = os.path.join(
+                cwd, f"outputs/pipeline_{model.name}_{now}"
+            )
+            trainer = Trainer()
+            for i, dataset in enumerate(cross_validation_datasets):
+                save_file_path = os.path.join(cwd, f"outputs/{model.name}_{now}_{i}")
+
+                x_train, x_valid, y_train, y_valid = dataset
+                evaluation, artifact = trainer.train_and_evaluate(
+                    model=model,
+                    x_train=x_train,
+                    y_train=y_train,
+                    x_test=x_valid,
+                    y_test=y_valid,
+                    data_preprocess_pipeline=data_preprocess_pipeline,
+                    preprocess_pipeline_file_path=preprocess_pipeline_file_path,
+                    save_file_path=save_file_path,
+                )
 
 
 if __name__ == "__main__":

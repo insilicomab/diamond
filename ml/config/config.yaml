@@ -16,3 +16,38 @@ project_name: diamond
 run_name: experiment
 train_file_path: data/diamonds.csv
 
+name: beverage_sales_forecasting
+jobs:
+  data:
+    source: local
+    path: data/diamonds.csv
+
+  model:
+    name: light_gbm_regression
+    params:
+      num_leaves: 122
+      min_data_in_leaf: 8
+      max_bin: 365
+      bagging_fraction: 0.9213182882380164
+      feature_fraction: 0.4980655277580941
+      min_gain_to_split: 0.012265096895607893
+      lambda_l1: 0.16090519318037727
+      lambda_l2: 0.5600789957105483
+      objective: mae
+      random_seed: 1234
+      learning_rate: 0.02
+      min_data_in_bin: 3
+      bagging_freq: 1
+      bagging_seed: 0
+      num_iterations: 10000
+      seed: 1234
+      stopping_rounds: 100
+      eval_metrics: mae
+      verbose_eval: 500
+
+  train:
+    run: true
+
+  predict:
+    run: true
+    register: true
