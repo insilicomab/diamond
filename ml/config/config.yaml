@@ -14,13 +14,13 @@ hydra:
 
 project_name: diamond
 run_name: experiment
-train_file_path: data/diamonds.csv
 
 name: beverage_sales_forecasting
 jobs:
   data:
     source: local
     path: data/diamonds.csv
+    data_to_be_predicted_path: 
 
   model:
     name: light_gbm_regression
