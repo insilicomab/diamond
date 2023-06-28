@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 from sklearn.metrics import (
