@@ -5,6 +5,8 @@ import hydra
 import mlflow
 from omegaconf import DictConfig
 
+from src.jobs.predict import Predictor
+from src.jobs.register import DataRegister
 from src.jobs.retrieve import DataRetriever
 from src.jobs.train import Trainer
 from src.middleware.logger import configure_logger
@@ -46,12 +48,15 @@ def main(cfg: DictConfig):
 
         if cfg.jobs.train.run:
             now = datetime.now().strftime("%Y%m%d_%H%M%S")
+            os.makedirs(f"outputs/{now}", exist_ok=True)
             preprocess_pipeline_file_path = os.path.join(
-                cwd, f"outputs/pipeline_{model.name}_{now}"
+                cwd, f"outputs/{now}/pipeline_{model.name}_{now}"
             )
             trainer = Trainer()
             for i, dataset in enumerate(cross_validation_datasets):
-                save_file_path = os.path.join(cwd, f"outputs/{model.name}_{now}_{i}")
+                save_file_path = os.path.join(
+                    cwd, f"outputs/{now}/{model.name}_{now}_{i}"
+                )
 
                 x_train, x_valid, y_train, y_valid = dataset
                 evaluation, artifact = trainer.train_and_evaluate(
@@ -64,6 +69,41 @@ def main(cfg: DictConfig):
                     preprocess_pipeline_file_path=preprocess_pipeline_file_path,
                     save_file_path=save_file_path,
                 )
+                mlflow.log_metric("mean_absolute_error", evaluation.mean_absolute_error)
+                mlflow.log_metric(
+                    "mean_absolute_percentage_error",
+                    evaluation.mean_absolute_percentage_error,
+                )
+                mlflow.log_metric("mean_squared_error", evaluation.mean_squared_error)
+                mlflow.log_metric(
+                    "root_mean_squared_error", evaluation.root_mean_squared_error
+                )
+                mlflow.log_artifact(artifact.preprocess_file_path, "preprocess")
+                mlflow.log_artifact(artifact.model_file_path, "model")
+
+                if cfg.jobs.predict.run:
+                    predictor = Predictor()
+                    predictions = predictor.predict(model=model, x=x_test, y=y_test)
+                    logger.info(f"predictions: {predictions}")
+                    print(predictions)
+
+                    if cfg.jobs.predict.register:
+                        data_register = DataRegister()
+                        prediction_file_path = os.path.join(
+                            cwd, f"outputs/{now}/prediction_{model.name}_{now}_{i}"
+                        )
+                        prediction_file_path = data_register.register(
+                            predictions=predictions,
+                            prediction_file_path=prediction_file_path,
+                        )
+                        mlflow.log_artifact(prediction_file_path, "prediction")
+
+                mlflow.log_artifact(
+                    os.path.join(cwd, "config/config.yaml"), "config.yaml"
+                )
+
+                mlflow.log_param("model", model.name)
+                mlflow.log_params(model.params)
 
 
 if __name__ == "__main__":

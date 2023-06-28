@@ -125,3 +125,13 @@ RAW_PREDICTION_SCHEMA = DataFrameSchema(
     strict=True,
     coerce=True,
 )
+
+PREDICTION_SCHEMA = DataFrameSchema(
+    columns={
+        "true": Column(float),
+        "predictions": Column(float),
+    },
+    index=Index(int),
+    strict=True,
+    coerce=True,
+)
